@@ -26,7 +26,7 @@ function signinFirebase(email, password) {
             const user = userCredential.user;
             console.log('Logged in user:', user);
             // Redirect to main page after successful login
-            window.location.href = '/html/main.html';
+            window.location.href = './html/main.html';
         })
         .catch((error) => {
             let errorMessage = 'Login failed. Please try again.';
