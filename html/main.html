@@ -44,7 +44,7 @@
                         <i class="fas fa-home"></i>
                         <span class="ms-2">Home</span>
                     </a>
-                    <a class="nav-link" href="#">
+                    <a class="nav-link" href="./history.html">
                         <i class="fas fa-history"></i>
                         <span class="ms-2">History</span>
                     </a>
@@ -57,11 +57,11 @@
                 <div class="user-profile ms-lg-0">
                     <div class="dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                            <div class="avatar-circle">JD</div>
+                            <img id="navbarAvatar" src="" alt="Avatar" class="avatar-circle" style="width:40px; height:40px; object-fit:cover; border-radius:50%; background:#eee;">
                             <span class="ms-2">User</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="./profile.html"><i class="fas fa-user me-2"></i>Profile</a></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
@@ -197,11 +197,46 @@
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="../js/geminiAPI.js"></script>
     <script type="module" src="../js/foodAnalysis.js"></script>
     <script type="module" src="../js/foodTextAnalysis.js"></script>
     <script type="module" src="../js/nutritionSearch.js"></script>
+    <script type="module">
+        import { auth } from '../js/firebase-config.js';
+        import { handleSignOut } from '../js/userSettings.js';
+        // DOM elements for navbar
+        const navbarAvatar = document.getElementById('navbarAvatar');
+        const userNameSpan = document.querySelector('.user-profile .ms-2');
+        const logoutBtn = document.getElementById('logoutBtn');
+        // Load user info for navbar
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                userNameSpan.textContent = user.displayName || 'User';
+                if (user.photoURL) {
+                    navbarAvatar.src = user.photoURL;
+                } else {
+                    // Fallback: show initials as base64 SVG
+                    const initials = (user.displayName ? user.displayName.split(' ').map(n=>n[0]).join('') : 'U').toUpperCase();
+                    const svg = `<svg width='40' height='40' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' fill='%23eee'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='20' fill='%23666' font-family='Arial'>${initials}</text></svg>`;
+                    navbarAvatar.src = 'data:image/svg+xml;base64,' + btoa(svg);
+                }
+            }
+        });
+        // Handle logout
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await handleSignOut();
+            });
+        }
+    </script>
 </body>
 </html>

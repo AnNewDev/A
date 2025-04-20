@@ -222,11 +222,13 @@ async function analyzeImageWithGemini(imageBase64, languageCode = 'en') {
     }
 }
 
+import { saveAnalysisResults } from './history.js';
+
 async function handleImageAnalysis(imageFile, language = 'en') {
     const resultContainer = document.getElementById('resultContainer');
+    const resultHeader = document.getElementById('resultHeader');
     const foodName = document.getElementById('foodName');
     const calories = document.getElementById('calories');
-    const resultHeader = document.getElementById('resultHeader');
 
     if (!resultContainer || !foodName || !calories) {
         throw new Error('Required elements not found');
@@ -286,6 +288,31 @@ async function handleImageAnalysis(imageFile, language = 'en') {
             </ul>
         </div>`;
 
+        // Save analysis results to history
+        try {
+            const analysisData = {
+                nutrition: {
+                    calories: result.calories,
+                    protein: result.nutrition.protein,
+                    carbs: result.nutrition.carbs,
+                    fat: result.nutrition.fat
+                },
+                foodItems: [{
+                    name: result.foodName,
+                    confidence: 100
+                }],
+                imageUrl: base64Image,
+                category: result.category,
+                cuisine: result.cuisine,
+                ingredients: result.ingredients
+            };
+            await saveAnalysisResults(analysisData);
+            console.log('Analysis saved to history');
+        } catch (saveError) {
+            console.error('Error saving to history:', saveError);
+            // Don't throw this error as we still want to show the results
+        }
+
     } catch (error) {
         // Remove loading indicator if it exists
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -343,5 +370,6 @@ export {
     handleImageAnalysis,
     getLanguageName,
     analyzeImageWithGemini,
-    getBase64
+    getBase64,
+    clearAnalysis
 }; 
