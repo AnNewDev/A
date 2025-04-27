@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analysis History - CaloriesWise</title>
+    <title>Calorie Calculator - CaloriesWise</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../css/style.css">
@@ -21,10 +21,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="history.html">History</a>
+                        <a class="nav-link" href="../index.html">Home</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="main.html">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="history.html">History</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="calorie_calculator.html">Calorie Calculator</a>
@@ -36,32 +39,25 @@
 
     <div class="container mt-5">
         <div class="row justify-content-center">
-            <div class="col-12 col-lg-10">
-                <div class="d-flex align-items-center justify-content-between mb-4">
-                    <h1 class="mb-0">Analysis History</h1>
-                    <a href="main.html" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>New Analysis
-                    </a>
-                </div>
-                <div id="history-container">
-                    <!-- Analysis results will be displayed here -->
+            <div class="col-12 col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="mb-4 text-center">Calorie Calculator</h2>
+                        <div id="calculator-list" class="mb-4"></div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4>Total Calories: <span id="total-calories">0</span> kcal</h4>
+                            <button id="clear-calculator" class="btn btn-outline-danger"><i class="fas fa-trash"></i> Clear</button>
+                        </div>
+                        <div id="calculator-empty" class="alert alert-info text-center d-none">
+                            <i class="fas fa-info-circle me-2"></i>No food items added yet. Go to <a href="history.html">History</a> to add foods.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Firebase SDK -->
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-    
-    <!-- Firebase Config -->
-    <script type="module" src="../js/firebase-config.js"></script>
-    
-    <!-- Custom Scripts -->
-    <script type="module" src="../js/history.js"></script>
+    <script type="module" src="../js/calorieCalculator.js"></script>
 </body>
 </html>

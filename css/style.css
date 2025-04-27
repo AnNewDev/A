@@ -840,6 +840,356 @@ p {
     }
 }
 
+/* History Cards Styles */
+.analysis-card {
+    position: relative;
+    transition: all 0.3s ease;
+    border: none;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.analysis-card .card-header {
+    background: #f8f9fa;
+    padding: 0.8rem 1rem;
+    border: none;
+    color: #222;
+    box-shadow: none;
+    font-weight: 500;
+}
+
+.analysis-card .card-header h5,
+.analysis-card .card-header .btn-link,
+.analysis-card .card-header .btn-link span {
+    color: #222 !important;
+    background: transparent !important;
+    font-weight: 500;
+    font-size: 1.08rem;
+    letter-spacing: 0.01em;
+}
+
+.analysis-card .card-header .btn-link {
+    padding: 0;
+    box-shadow: none;
+    outline: none;
+    border: none;
+    text-decoration: none;
+}
+
+.analysis-card .card-header .fa-chevron-down {
+    color: #bdbdbd;
+}
+
+.analysis-card .card-header i.fas.fa-utensils {
+    display: none;
+}
+
+
+.analysis-card .card-header h5 {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #fff;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.analysis-card .card-header i.fas.fa-utensils {
+    font-size: 1.25rem;
+    opacity: 0.9;
+    color: #fff;
+}
+
+.analysis-card .card-header .fa-chevron-down {
+    font-size: 1.2rem;
+    transition: transform 0.2s;
+    color: #fff;
+    margin-left: 8px;
+    margin-right: 0;
+    flex-shrink: 0;
+}
+
+/* Rotate chevron when open (Bootstrap collapse) */
+.analysis-card .card-header .collapsed .fa-chevron-down {
+    transform: rotate(0deg);
+}
+.analysis-card .card-header .fa-chevron-down {
+    transform: rotate(0deg);
+}
+.analysis-card .card-header .btn[aria-expanded="true"] .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 768px) {
+    .analysis-card .card-header {
+        padding: 1rem 1rem;
+    }
+    .analysis-card .card-header h5 {
+        font-size: 1rem;
+    }
+    .analysis-card .card-header i.fas.fa-utensils {
+        font-size: 1.05rem;
+    }
+    .analysis-card .card-header .fa-chevron-down {
+        font-size: 1rem;
+        margin-left: 6px;
+    }
+}
+@media (max-width: 500px) {
+    .analysis-card .card-header {
+        padding: 0.7rem 0.7rem;
+    }
+    .analysis-card .card-header h5 {
+        font-size: 0.93rem;
+    }
+    .analysis-card .card-header .fa-chevron-down {
+        font-size: 0.95rem;
+        margin-left: 5px;
+    }
+}
+
+
+.analysis-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 0.5rem;
+    justify-content: flex-end;
+}
+
+.card-body .card-actions {
+    position: static;
+    margin-bottom: 1rem;
+    margin-top: -0.5rem;
+    z-index: 1;
+}
+
+@media (max-width: 768px) {
+    .card-body .card-actions {
+        gap: 6px;
+        margin-bottom: 0.7rem;
+        margin-top: 0;
+    }
+    .card-actions .card-action-btn {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+.card-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.card-action-btn:hover {
+    transform: scale(1.1);
+    background: #fff;
+}
+
+.card-action-btn.delete:hover {
+    color: #dc3545;
+    background: #fff5f5;
+}
+
+.card-action-btn.add:hover {
+    color: #198754;
+    background: #f0fff4;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.food-info {
+    position: relative;
+}
+
+.food-name {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #2d3748;
+    margin-bottom: 1rem;
+}
+
+.food-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.3px;
+}
+
+.badge.bg-light {
+    background: #f8fafc !important;
+    color: #64748b !important;
+    border: 1px solid #e2e8f0;
+}
+
+.badge.bg-primary {
+    background: #ebf5ff !important;
+    color: #3182ce !important;
+}
+
+.badge.bg-info {
+    background: #e6fffa !important;
+    color: #319795 !important;
+}
+
+.nutrition-info {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.nutrition-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem !important;
+    height: 100%;
+    transition: all 0.2s;
+    border: 1px solid #e2e8f0;
+}
+
+.nutrition-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.nutrition-card h6 {
+    color: #4a5568;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.nutrition-card .h5 {
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.ingredients-section {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.ingredients-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ingredients-list .badge {
+    background: white;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.ingredients-list .badge:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+}
+
+@media (max-width: 992px) {
+    .col-md-6, .col-lg-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .analysis-card {
+        margin-bottom: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+    .analysis-card .card-header {
+        padding: 1rem 1rem;
+    }
+    .food-name {
+        font-size: 1rem;
+    }
+    .badge {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.78rem;
+        margin-bottom: 0.3rem;
+        word-break: break-word;
+    }
+    .food-meta, .ingredients-list {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .nutrition-info,
+    .ingredients-section {
+        padding: 1rem;
+    }
+    .nutrition-card {
+        padding: 0.7rem !important;
+    }
+    .nutrition-card h6 {
+        font-size: 0.78rem;
+    }
+    .nutrition-card .h5 {
+        font-size: 0.95rem;
+    }
+    .card-actions {
+        top: 8px;
+        right: 8px;
+        gap: 5px;
+    }
+    .analysis-card .card-header h5 {
+        font-size: 1rem;
+    }
+    .analysis-card .card-header i {
+        font-size: 1.05rem;
+    }
+    .card {
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 500px) {
+    .card-body {
+        padding: 0.7rem;
+    }
+    .analysis-card .card-header {
+        padding: 0.7rem 0.7rem;
+    }
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.5rem;
+    }
+    .analysis-card .card-header h5 {
+        font-size: 0.93rem;
+    }
+}
+
+
 /* Food Search Styles */
 .food-search-container {
     position: relative;

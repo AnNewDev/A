@@ -42,9 +42,7 @@
             <li class="nav-item">
               <a class="nav-link" href="#how-it-works">How It Works</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#pricing">Pricing</a>
-            </li>
+            
             <li class="nav-item">
               <a class="nav-link" href="#faq">FAQ</a>
             </li>
@@ -237,6 +235,40 @@
     <section id="pricing" class="pricing-section">
       <div class="container">
         <h2 class="section-title text-center">Choose Your Plan</h2>
+        <style>
+          .pricing-card {
+            cursor: pointer;
+            transition: box-shadow 0.2s, border 0.2s;
+            border: 2px solid transparent;
+            position: relative;
+          }
+          .pricing-card:hover {
+            box-shadow: 0 4px 24px rgba(0,123,255,0.15);
+            border-color: #007bff;
+          }
+          .pricing-card.selected {
+            border-color: #007bff;
+            box-shadow: 0 8px 32px rgba(0,123,255,0.22);
+          }
+          .pricing-card .selected-check {
+            display: none;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #007bff;
+            color: #fff;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            z-index: 2;
+          }
+          .pricing-card.selected .selected-check {
+            display: flex;
+          }
+        </style>
         <div class="row g-4">
           <div class="col-md-4">
             <div class="pricing-card">
@@ -364,5 +396,17 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+  <script>
+  // Pricing card selection logic
+  document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.pricing-card');
+    cards.forEach(card => {
+      card.addEventListener('click', function() {
+        cards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+    });
+  });
+</script>
+</body>
 </html> 

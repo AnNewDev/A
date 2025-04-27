@@ -282,6 +282,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     </ul>
                 </div>`;
 
+                // Save analysis results to history
+                try {
+                    const analysisData = {
+                        nutrition: {
+                            calories: result.calories,
+                            protein: result.nutrition.protein,
+                            carbs: result.nutrition.carbs,
+                            fat: result.nutrition.fat
+                        },
+                        foodItems: [{
+                            name: result.foodName,
+                            confidence: 100
+                        }],
+                        imageUrl: null, // No image for text analysis
+                        category: result.category,
+                        cuisine: result.cuisine,
+                        ingredients: result.ingredients,
+                        healthTips: result.healthTips,
+                        alternatives: result.alternatives
+                    };
+                    await saveAnalysisResults(analysisData);
+                    console.log('Text analysis saved to history');
+                } catch (saveError) {
+                    console.error('Error saving text analysis to history:', saveError);
+                    // Don't throw this error as we still want to show the results
+                }
+
             } catch (error) {
                 console.error('Error:', error);
                 foodNameElement.innerHTML = `<div class="alert alert-danger">
@@ -306,3 +333,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Export necessary functions
 export { analyzeFoodByText, getLanguageName }; 
+
+// Import saveAnalysisResults from history.js
+import { saveAnalysisResults } from './history.js';
