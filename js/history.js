@@ -113,300 +113,141 @@ function showConnectionError(container, error) {
     `;
 }
 
-// Function to load and display analysis history
-async function loadAnalysisHistory() {
+// --- New UI State ---
+let allHistoryDocs = [];
+let selectedDate = null;
+let selectedMeal = 'breakfast';
+
+// --- Helper: Format date as YYYY-MM-DD ---
+function formatDate(date) {
+    const d = new Date(date);
+    return d.toISOString().split('T')[0];
+}
+
+// --- Helper: Capitalize first letter ---
+function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// --- Render Date Selector ---
+function renderDateSelector(dates) {
+    const dateSelector = document.getElementById('date-selector');
+    dateSelector.innerHTML = '';
+    dates.forEach(date => {
+        const btn = document.createElement('button');
+        btn.className = 'date-btn' + (date === selectedDate ? ' active' : '');
+        btn.textContent = new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        btn.onclick = () => {
+            selectedDate = date;
+            renderDateSelector(dates);
+            renderFoodCards();
+        };
+        dateSelector.appendChild(btn);
+    });
+}
+
+// --- Render Meal Tabs ---
+function renderMealTabs() {
+    const mealTabs = document.getElementById('meal-tabs');
+    Array.from(mealTabs.children).forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.meal === selectedMeal);
+        tab.onclick = () => {
+            selectedMeal = tab.dataset.meal;
+            renderMealTabs();
+            renderFoodCards();
+        };
+    });
+}
+
+// --- Render Food Cards ---
+function renderFoodCards() {
     const historyContainer = document.getElementById('history-container');
-    if (!historyContainer) {
-        console.error('History container not found');
+    historyContainer.innerHTML = '';
+    // Filter docs by selected date and meal
+    const filtered = allHistoryDocs.filter(doc => {
+        const data = doc.data();
+        const docDate = formatDate(data.timestamp);
+        // Try to get meal type, fallback to 'breakfast'
+        const meal = (data.data.mealType || 'breakfast').toLowerCase();
+        return docDate === selectedDate && meal === selectedMeal;
+    });
+    if (filtered.length === 0) {
+        historyContainer.innerHTML = `<div class="text-center text-muted p-5">No records for this meal and date.</div>`;
         return;
     }
+    filtered.forEach(doc => {
+        const data = doc.data();
+        const food = data.data;
+        const imageUrl = food.imageUrl || 'https://img.icons8.com/ios-filled/50/meal.png';
+        const foodName = food.foodName || (food.foodItems && food.foodItems[0]?.name) || 'Unknown Food';
+        const kcal = food.calories || (food.nutrition && food.nutrition.calories) || (food.foodItems && food.foodItems[0]?.calories) || '--';
+        const weight = food.weight || (food.foodItems && food.foodItems[0]?.weight) || '--';
+        const protein = (food.nutrition && food.nutrition.protein) || '--';
+        const carbs = (food.nutrition && food.nutrition.carbs) || '--';
+        const fat = (food.nutrition && food.nutrition.fat) || '--';
+        // Card
+        const card = document.createElement('div');
+        card.className = 'food-card';
+        card.innerHTML = `
+            <img class="food-img" src="${imageUrl}" alt="Food">
+            <div class="food-info">
+                <div class="food-title">${foodName}</div>
+                <div class="food-meta">
+                    <span class="kcal-fire"><i class="fas fa-fire"></i></span>${kcal} kcal
+                    <span style="color:#bbb;font-size:0.97em;">${weight !== '--' ? '· ' + weight + ' G' : ''}</span>
+                </div>
+                <div class="nutrients mt-2">
+                    <div class="nutrient protein"><span style="display:inline-block;width:8px;height:8px;background:#2ecc40;border-radius:2px;margin-right:4px;"></span>${protein} <span class="nutrient-label">Protein</span></div>
+                    <div class="nutrient carbs"><span style="display:inline-block;width:8px;height:8px;background:#f1c40f;border-radius:2px;margin-right:4px;"></span>${carbs} <span class="nutrient-label">Carbs</span></div>
+                    <div class="nutrient fat"><span style="display:inline-block;width:8px;height:8px;background:#a569bd;border-radius:2px;margin-right:4px;"></span>${fat} <span class="nutrient-label">Fat</span></div>
+                </div>
+            </div>
+            <button class="menu-btn" title="More actions"><i class="fas fa-ellipsis-h"></i></button>
+        `;
+        // Menu button (placeholder for now)
+        card.querySelector('.menu-btn').onclick = (e) => {
+            e.stopPropagation();
+            // You can implement a dropdown or modal for actions here
+            alert('More actions coming soon!');
+        };
+        historyContainer.appendChild(card);
+    });
+}
 
+// --- Main load function ---
+async function loadAnalysisHistory() {
+    const historyContainer = document.getElementById('history-container');
+    if (!historyContainer) return;
+    historyContainer.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading your analysis history...</p></div>`;
     try {
-        // Show initial loading state
-        historyContainer.innerHTML = `
-            <div class="text-center p-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-3">Checking connection...</p>
-            </div>
-        `;
-
-        // Check Firebase connectivity first
         const isConnected = await checkFirebaseConnectivity();
-        if (!isConnected) {
-            showConnectionError(historyContainer);
-            return;
-        }
-
+        if (!isConnected) { showConnectionError(historyContainer); return; }
         const user = auth.currentUser;
-        if (!user) {
-            console.log('No user logged in, redirecting to signin');
-            window.location.href = 'Signin.html';
-            return;
-        }
-
+        if (!user) { window.location.href = 'Signin.html'; return; }
         const userId = user.uid;
-        
-        // Update loading message
-        historyContainer.innerHTML = `
-            <div class="text-center p-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-3">Loading your analysis history...</p>
-            </div>
-        `;
-        
-        // Get analysis history from Firestore
         const analysisRef = collection(db, 'analysis_history');
         const q = query(analysisRef, where('userId', '==', userId));
         const snapshot = await getDocs(q);
-
-        // Sort the results
-        const sortedDocs = snapshot.docs.sort((a, b) => {
-            const timeA = new Date(a.data().timestamp).getTime();
-            const timeB = new Date(b.data().timestamp).getTime();
-            return timeB - timeA; // descending order
-        });
-
-        if (snapshot.empty) {
-            historyContainer.innerHTML = `
-                <div class="text-center p-5">
-                    <div class="empty-state bg-light rounded p-5">
-                        <i class="fas fa-history fa-4x text-muted mb-4"></i>
-                        <h3 class="mb-3">No Analysis History</h3>
-                        <p class="text-muted mb-4">You haven't analyzed any food items yet. Start by analyzing your first food!</p>
-                        <div class="d-flex justify-content-center gap-3">
-                            <a href="main.html" class="btn btn-primary">
-                                <i class="fas fa-camera me-2"></i>Analyze with Image
-                            </a>
-                            
-                        </div>
-                    </div>
-                </div>
-            `;
+        allHistoryDocs = snapshot.docs;
+        if (allHistoryDocs.length === 0) {
+            historyContainer.innerHTML = `<div class="text-center p-5"><div class="empty-state bg-light rounded p-5"><i class="fas fa-history fa-4x text-muted mb-4"></i><h3 class="mb-3">No Analysis History</h3><p class="text-muted mb-4">You haven't analyzed any food items yet. Start by analyzing your first food!</p><div class="d-flex justify-content-center gap-3"><a href="main.html" class="btn btn-primary"><i class="fas fa-camera me-2"></i>Analyze with Image</a></div></div></div>`;
             return;
         }
-
-        // Create container for filters and cards
-        historyContainer.innerHTML = `
-            <div class="mb-4 d-flex justify-content-between align-items-center history-header">
-                <h4 class="mb-0">
-                    <i class="fas fa-history me-2 text-primary"></i>Your Analysis History
-                </h4>
-                <div class="d-flex gap-2">
-                    <a href="main.html" class="btn btn-primary btn-sm">
-                        <i class="fas fa-camera me-2"></i>New Analysis
-                    </a>
-                    
-                </div>
-            </div>
-            <div class="row g-4" id="history-cards"></div>
-        `;
-
-        const historyCards = document.getElementById('history-cards');
-
-        // Create cards for each analysis result
-        for (const docSnapshot of sortedDocs) {
-            const data = docSnapshot.data();
-            const timestamp = new Date(data.timestamp).toLocaleString();
-            const imageUrl = data.data.imageUrl || '';
-            
-            const col = document.createElement('div');
-            col.className = 'col-12 col-md-6 col-lg-4 mb-4';
-            
-            // Unique ID for accordion collapse
-            const uniqueId = `historyCollapse${data.id || Math.random().toString(36).substr(2, 9)}`;
-            const card = document.createElement('div');
-            card.className = 'card analysis-card mb-3';
-            card.innerHTML = `
-                <div class="card-header p-0" id="heading-${uniqueId}" style="cursor:pointer;">
-                    <h5 class="mb-0">
-                        <button class="btn btn-link d-flex align-items-center w-100 text-start px-4 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#${uniqueId}" aria-expanded="false" aria-controls="${uniqueId}">
-                            <i class="fas fa-utensils me-2"></i>
-                            <span class="text-truncate flex-grow-1">${data.data.foodItems?.[0]?.name || data.data.foodName || 'Unknown Food'}</span>
-                            <i class="fas fa-chevron-down ms-auto"></i>
-                        </button>
-                    </h5>
-                </div>
-                <div id="${uniqueId}" class="collapse" aria-labelledby="heading-${uniqueId}">
-                    <div class="card-body">
-                        <div class="card-actions mb-3">
-                            <button class="card-action-btn delete" title="Delete from history">
-                                <i class="fas fa-times"></i>
-                            </button>
-                            <button class="card-action-btn add" title="Add to calculator">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                            <span class="badge bg-light text-dark flex-grow-1 text-center" style="min-width:110px;">
-                                <i class="fas fa-clock me-1"></i>${new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                            </span>
-                            <span class="badge bg-light text-dark flex-grow-1 text-center" style="min-width:110px;">
-                                <i class="fas fa-clock me-1"></i>${new Date(timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <span class="badge bg-primary flex-grow-1 text-center" style="min-width:110px;">
-                                <i class="fas fa-${data.data.imageUrl ? 'camera' : 'keyboard'} me-1"></i>
-                                ${data.data.imageUrl ? 'Image' : 'Text'} Analysis
-                            </span>
-                        </div>
-                        <div class="analysis-details">
-                            ${formatAnalysisData(data.data, imageUrl)}
-                        </div>
-                    </div>
-                </div>`;
-
-            // Add delete functionality
-            const deleteBtn = card.querySelector('.card-action-btn.delete');
-            deleteBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (confirm('Are you sure you want to delete this analysis from history?')) {
-                    try {
-                        const docRef = doc(db, 'analysis_history', docSnapshot.id);
-                        await deleteDoc(docRef);
-                        col.remove();
-                        showToast('Analysis deleted successfully', 'success');
-                    } catch (error) {
-                        console.error('Error deleting analysis:', error);
-                        showToast('Failed to delete analysis', 'error');
-                    }
-                }
-            });
-
-            // Add to calculator functionality
-            const addBtn = card.querySelector('.card-action-btn.add');
-            addBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Support both nutrition and nutritionInfo fields for compatibility
-                const nutrition = data.data.nutrition || data.data.nutritionInfo || {};
-                const foodName = data.data.foodName || (data.data.foodItems && data.data.foodItems[0]?.name) || 'Unknown Food';
-                // Try to get calories from multiple possible sources
-                // Explicitly check for calories inside nutrition property
-                let calories = undefined;
-                // Extract numeric value from nutrition.calories even if it contains text
-                if (data.data.nutrition && data.data.nutrition.calories !== undefined) {
-                    let caloRaw = data.data.nutrition.calories;
-                    let caloNum = null;
-                    if (typeof caloRaw === 'string') {
-                        // Match first number (handles range and text)
-                        const match = caloRaw.match(/\d+/);
-                        if (match) {
-                            caloNum = parseFloat(match[0]);
-                        }
-                    } else if (typeof caloRaw === 'number') {
-                        caloNum = caloRaw;
-                    }
-                    if (caloNum !== null && !isNaN(caloNum)) {
-                        calories = caloNum;
-                        console.log('DEBUG: Parsed calories from string:', caloRaw, '->', caloNum);
-                    }
-                }
-                if (calories === undefined && data.data.nutritionInfo && data.data.nutritionInfo.calories !== undefined) {
-                    let caloRaw = data.data.nutritionInfo.calories;
-                    let caloNum = null;
-                    if (typeof caloRaw === 'string') {
-                        const match = caloRaw.match(/\d+/);
-                        if (match) {
-                            caloNum = parseFloat(match[0]);
-                        }
-                    } else if (typeof caloRaw === 'number') {
-                        caloNum = caloRaw;
-                    }
-                    if (caloNum !== null && !isNaN(caloNum)) {
-                        calories = caloNum;
-                        console.log('DEBUG: Parsed calories from nutritionInfo string:', caloRaw, '->', caloNum);
-                    }
-                }
-                if (calories === undefined && data.data.foodItems && data.data.foodItems[0] && data.data.foodItems[0].calories !== undefined) {
-                    let caloRaw = data.data.foodItems[0].calories;
-                    let caloNum = null;
-                    if (typeof caloRaw === 'string') {
-                        const match = caloRaw.match(/\d+/);
-                        if (match) {
-                            caloNum = parseFloat(match[0]);
-                        }
-                    } else if (typeof caloRaw === 'number') {
-                        caloNum = caloRaw;
-                    }
-                    if (caloNum !== null && !isNaN(caloNum)) {
-                        calories = caloNum;
-                        console.log('DEBUG: Parsed calories from foodItems string:', caloRaw, '->', caloNum);
-                    }
-                }
-                if (calories === undefined && data.data.calories !== undefined) {
-                    let caloRaw = data.data.calories;
-                    let caloNum = null;
-                    if (typeof caloRaw === 'string') {
-                        const match = caloRaw.match(/\d+/);
-                        if (match) {
-                            caloNum = parseFloat(match[0]);
-                        }
-                    } else if (typeof caloRaw === 'number') {
-                        caloNum = caloRaw;
-                    }
-                    if (caloNum !== null && !isNaN(caloNum)) {
-                        calories = caloNum;
-                        console.log('DEBUG: Parsed calories from data.data.calories string:', caloRaw, '->', caloNum);
-                    }
-                }
-                if (calories === undefined) {
-                    // Try to find calories in any nested field
-                    function deepFindCalories(obj) {
-                        if (!obj || typeof obj !== 'object') return undefined;
-                        for (const key in obj) {
-                            if (key.toLowerCase().includes('calorie') && !isNaN(Number(obj[key]))) {
-                                return obj[key];
-                            }
-                            if (typeof obj[key] === 'object') {
-                                const found = deepFindCalories(obj[key]);
-                                if (found !== undefined) return found;
-                            }
-                        }
-                        return undefined;
-                    }
-                    calories = deepFindCalories(data.data);
-                    if (calories !== undefined) {
-                        console.log('DEBUG: Found calories via deep search:', calories);
-                    }
-                }
-                if (calories === undefined || calories === null || calories === '' || isNaN(Number(calories))) {
-                    calories = 0;
-                    console.log('DEBUG: Defaulting calories to 0. Data object:', data.data);
-                    if (data.data.nutrition) {
-                        console.log('DEBUG: nutrition object:', data.data.nutrition);
-                        console.log('DEBUG: nutrition keys:', Object.keys(data.data.nutrition));
-                    } else {
-                        console.log('DEBUG: No nutrition object found. data.data keys:', Object.keys(data.data));
-                    }
-                }
-                console.log('DEBUG: Final calories value used:', calories);
-                // Get existing calculator items from localStorage
-                let calculatorItems = JSON.parse(localStorage.getItem('calculatorItems') || '[]');
-                // Add new item
-                calculatorItems.push({
-                    id: docSnapshot.id,
-                    name: foodName,
-                    calories: parseFloat(calories) || 0,
-                    protein: parseFloat(nutrition.protein) || 0,
-                    carbs: parseFloat(nutrition.carbs) || 0,
-                    fat: parseFloat(nutrition.fat) || 0,
-                    timestamp: new Date().toISOString()
-                });
-                // Save back to localStorage
-                localStorage.setItem('calculatorItems', JSON.stringify(calculatorItems));
-                showToast(`${foodName} added to calculator. <a href='calorie_calculator.html' class='text-white text-decoration-underline ms-2'>View Calculator</a>`, 'success');
-            });
-            
-            col.appendChild(card);
-            historyCards.appendChild(col);
-        }
+        // Get all unique dates
+        const dates = Array.from(new Set(allHistoryDocs.map(doc => formatDate(doc.data().timestamp)))).sort((a, b) => new Date(b) - new Date(a));
+        selectedDate = selectedDate || dates[0];
+        renderDateSelector(dates);
+        renderMealTabs();
+        renderFoodCards();
     } catch (error) {
-        console.error('Error loading analysis history:', error);
         showConnectionError(historyContainer, error);
     }
 }
+
+// --- Init on page load ---
+document.addEventListener('DOMContentLoaded', () => {
+    loadAnalysisHistory();
+});
 
 // Helper function to format analysis data
 function formatAnalysisData(data, imageUrl = '') {
