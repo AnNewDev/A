@@ -3,6 +3,55 @@ gsap.registerPlugin(ScrollTrigger);
 
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
+  // --- Firebase Auth State Check for Navbar ---
+  import('./firebase-config.js').then(({ auth }) => {
+    if (typeof auth.onAuthStateChanged === 'function') {
+      auth.onAuthStateChanged(user => {
+        // Always redirect logged-in users to dashboard if on index page
+        if (user && window.location.pathname.match(/index\.html$/)) {
+          window.location.replace('html/main.html');
+          return;
+        }
+        const navButtons = document.querySelector('.nav-buttons');
+        if (!navButtons) return;
+        navButtons.innerHTML = '';
+        if (user) {
+          // User is logged in: Show Profile and Logout
+          const profileBtn = document.createElement('a');
+          profileBtn.href = './html/profile.html';
+          profileBtn.className = 'btn btn-outline-primary me-2';
+          profileBtn.textContent = 'Profile';
+
+          const logoutBtn = document.createElement('button');
+          logoutBtn.className = 'btn btn-danger';
+          logoutBtn.textContent = 'Logout';
+          logoutBtn.onclick = async () => {
+            const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            await signOut(auth);
+            window.location.href = './html/Signin.html';
+          };
+
+          navButtons.appendChild(profileBtn);
+          navButtons.appendChild(logoutBtn);
+        } else {
+          // Not logged in: Show Sign In and Get Started
+          const signInBtn = document.createElement('a');
+          signInBtn.href = './html/Signin.html';
+          signInBtn.className = 'btn btn-outline-primary me-2';
+          signInBtn.textContent = 'Sign In';
+
+          const getStartedBtn = document.createElement('a');
+          getStartedBtn.href = './html/Signinup.html';
+          getStartedBtn.className = 'btn btn-primary';
+          getStartedBtn.textContent = 'Get Started';
+
+          navButtons.appendChild(signInBtn);
+          navButtons.appendChild(getStartedBtn);
+        }
+      });
+    }
+  });
+
   // Refresh ScrollTrigger
   ScrollTrigger.refresh();
 

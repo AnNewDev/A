@@ -1,5 +1,5 @@
 import { auth, db } from './firebase-config.js';
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc as importedDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 console.log('History.js - Starting initialization');
 
@@ -50,6 +50,10 @@ function showToast(message, type = 'info') {
         toastContainer = document.createElement('div');
         toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
         document.body.appendChild(toastContainer);
+    }
+    if (!toastContainer) {
+        alert(message); // fallback
+        return;
     }
 
     // Create toast element
@@ -132,6 +136,9 @@ function capitalize(str) {
 // --- Render Date Selector ---
 function renderDateSelector(dates) {
     const dateSelector = document.getElementById('date-selector');
+    if (!dateSelector) {
+        return;
+    }
     dateSelector.innerHTML = '';
     dates.forEach(date => {
         const btn = document.createElement('button');
@@ -149,6 +156,9 @@ function renderDateSelector(dates) {
 // --- Render Meal Tabs ---
 function renderMealTabs() {
     const mealTabs = document.getElementById('meal-tabs');
+    if (!mealTabs) {
+        return;
+    }
     Array.from(mealTabs.children).forEach(tab => {
         tab.classList.toggle('active', tab.dataset.meal === selectedMeal);
         tab.onclick = () => {
@@ -162,6 +172,9 @@ function renderMealTabs() {
 // --- Render Food Cards ---
 function renderFoodCards() {
     const historyContainer = document.getElementById('history-container');
+    if (!historyContainer) {
+        return;
+    }
     historyContainer.innerHTML = '';
     // Filter docs by selected date and meal
     const filtered = allHistoryDocs.filter(doc => {
@@ -202,14 +215,24 @@ function renderFoodCards() {
                     <div class="nutrient fat"><span style="display:inline-block;width:8px;height:8px;background:#a569bd;border-radius:2px;margin-right:4px;"></span>${fat} <span class="nutrient-label">Fat</span></div>
                 </div>
             </div>
-            <button class="menu-btn" title="More actions"><i class="fas fa-ellipsis-h"></i></button>
+            <div class="card-actions" style="display:flex;gap:4px;position:absolute;top:10px;right:10px;z-index:2;">
+                <button class="card-action-btn menu-btn" aria-label="More actions" title="More actions"><i class="fas fa-ellipsis-h"></i></button>
+                <button class="card-action-btn delete delete-btn" aria-label="Delete" title="Delete" style="margin-left:6px;"><i class="fas fa-trash"></i></button>
+            </div>
         `;
         // Menu button (placeholder for now)
         card.querySelector('.menu-btn').onclick = (e) => {
             e.stopPropagation();
-            // You can implement a dropdown or modal for actions here
             alert('More actions coming soon!');
         };
+        // Delete button logic (always use the doc id from Firestore)
+        card.querySelector('.delete-btn').onclick = (e) => {
+            e.stopPropagation();
+            showDeleteModal(doc.id);
+        };
+
+
+
         historyContainer.appendChild(card);
     });
 }
@@ -217,7 +240,9 @@ function renderFoodCards() {
 // --- Main load function ---
 async function loadAnalysisHistory() {
     const historyContainer = document.getElementById('history-container');
-    if (!historyContainer) return;
+    if (!historyContainer) {
+        return;
+    }
     historyContainer.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading your analysis history...</p></div>`;
     try {
         const isConnected = await checkFirebaseConnectivity();
@@ -245,8 +270,52 @@ async function loadAnalysisHistory() {
 }
 
 // --- Init on page load ---
+// ---- Custom Delete Confirmation Modal ----
+function ensureDeleteModal() {
+    if (document.getElementById('delete-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'delete-modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-message">Are you sure you want to delete this history item?</div>
+        <div class="modal-actions">
+          <button id="delete-modal-confirm" class="btn btn-danger">Delete</button>
+          <button id="delete-modal-cancel" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    `;
+    modal.style.display = 'none';
+    document.body.appendChild(modal);
+}
+
+let pendingDeleteDocId = null;
+function showDeleteModal(docId) {
+    ensureDeleteModal();
+    pendingDeleteDocId = docId;
+    const modal = document.getElementById('delete-modal');
+    modal.style.display = 'flex';
+    // Button handlers
+    document.getElementById('delete-modal-confirm').onclick = async () => {
+        try {
+            await deleteDoc(importedDoc(db, 'analysis_history', pendingDeleteDocId));
+            showToast('History item deleted!', 'success');
+            loadAnalysisHistory();
+        } catch (err) {
+            showToast('Failed to delete item', 'error');
+        }
+        hideDeleteModal();
+    };
+    document.getElementById('delete-modal-cancel').onclick = hideDeleteModal;
+}
+function hideDeleteModal() {
+    const modal = document.getElementById('delete-modal');
+    if (modal) modal.style.display = 'none';
+    pendingDeleteDocId = null;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadAnalysisHistory();
+    ensureDeleteModal();
 });
 
 // Helper function to format analysis data
