@@ -58,12 +58,19 @@ async function searchFoods(query) {
 }
 
 // Function to display food suggestions
-function displaySuggestions(foods) {
+function displaySuggestions(foods, error = null) {
     const suggestionsDiv = document.getElementById('foodSuggestions');
     suggestionsDiv.innerHTML = '';
 
+    if (error) {
+        suggestionsDiv.innerHTML = `<div class="food-suggestions-empty">${error}</div>`;
+        suggestionsDiv.style.display = 'block';
+        return;
+    }
+
     if (foods.length === 0) {
-        suggestionsDiv.style.display = 'none';
+        suggestionsDiv.innerHTML = '<div class="food-suggestions-empty">No suggestions found. Try a different food name.</div>';
+        suggestionsDiv.style.display = 'block';
         return;
     }
 
@@ -71,6 +78,9 @@ function displaySuggestions(foods) {
         const div = document.createElement('div');
         div.className = 'food-suggestion-item';
         div.setAttribute('data-index', index);
+        div.setAttribute('tabindex', 0);
+        div.setAttribute('role', 'option');
+        div.setAttribute('aria-selected', selectedIndex === index);
 
         const name = food.food_name || food.brand_name_item_name || food.brand_name;
         const details = food.serving_unit ? `${food.serving_qty} ${food.serving_unit}` : '';
@@ -166,8 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
         suggestionsDiv.style.display = 'block';
 
         // Fetch and display suggestions
-        const foods = await searchFoods(query);
-        displaySuggestions(foods);
+        let foods = [];
+        let errorMsg = null;
+        try {
+            foods = await searchFoods(query);
+        } catch (err) {
+            errorMsg = 'Could not load suggestions. Please try again.';
+        }
+        displaySuggestions(foods, errorMsg);
     }, 300));
 
     // Handle keyboard navigation
