@@ -1,11 +1,36 @@
-// Function to convert image to base64
-function getBase64(file) {
+// Function to compress and convert image to base64
+function getBase64(file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
-            let encoded = reader.result.toString();
-            resolve(encoded);
+            const img = new window.Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth || height > maxHeight) {
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width *= maxHeight / height;
+                            height = maxHeight;
+                        }
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl);
+            };
+            img.onerror = error => reject(error);
+            img.src = reader.result;
         };
         reader.onerror = error => reject(error);
     });
@@ -290,26 +315,54 @@ async function handleImageAnalysis(imageFile, language = 'en') {
 
         // Save analysis results to history
         try {
-            const analysisData = {
-                nutrition: {
-                    calories: result.calories,
-                    protein: result.nutrition.protein,
-                    carbs: result.nutrition.carbs,
-                    fat: result.nutrition.fat
-                },
-                foodItems: [{
-                    name: result.foodName,
-                    confidence: 100
-                }],
-                imageUrl: base64Image,
-                category: result.category,
-                cuisine: result.cuisine,
-                ingredients: result.ingredients
-            };
-            await saveAnalysisResults(analysisData);
-            console.log('Analysis saved to history');
+            // Check if user is authenticated
+            // Ensure we use the same auth instance as the rest of the app
+            let currentAuth = window.auth;
+            if (!currentAuth) {
+                try {
+                    // Dynamically import if not already present
+                    const mod = await import('./firebase-config.js');
+                    currentAuth = mod.auth;
+                } catch (e) {
+                    currentAuth = undefined;
+                }
+            }
+            if (!currentAuth || !currentAuth.currentUser) {
+                if (window.showToast) {
+                    window.showToast('You must be logged in to save to history.', 'error');
+                } else {
+                    alert('You must be logged in to save to history.');
+                }
+            } else {
+                const analysisData = {
+                    nutrition: {
+                        calories: result.calories,
+                        protein: result.nutrition.protein,
+                        carbs: result.nutrition.carbs,
+                        fat: result.nutrition.fat
+                    },
+                    foodItems: [{
+                        name: result.foodName,
+                        confidence: 100
+                    }],
+                    imageUrl: base64Image,
+                    category: result.category,
+                    cuisine: result.cuisine,
+                    ingredients: result.ingredients
+                };
+                await saveAnalysisResults(analysisData);
+                if (window.showToast) {
+                    window.showToast('Analysis saved to history!', 'success');
+                }
+                console.log('Analysis saved to history');
+            }
         } catch (saveError) {
             console.error('Error saving to history:', saveError);
+            if (window.showToast) {
+                window.showToast('Failed to save to history. Please check your connection or login.', 'error');
+            } else {
+                alert('Failed to save to history. Please check your connection or login.');
+            }
             // Don't throw this error as we still want to show the results
         }
 
