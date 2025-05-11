@@ -5,6 +5,8 @@ console.log('History.js - Starting initialization');
 
 // Function to save analysis results to Firebase
 async function saveAnalysisResults(analysisData) {
+    // Debug log for imageUrl
+    console.log('[saveAnalysisResults] analysisData.imageUrl:', analysisData.imageUrl);
     try {
         const userId = auth.currentUser.uid;
         const timestamp = new Date().toISOString();
@@ -121,6 +123,7 @@ function showConnectionError(container, error) {
 let allHistoryDocs = [];
 let selectedDate = null;
 let selectedMeal = 'breakfast';
+const mealTypes = ['all', 'breakfast', 'lunch', 'dinner'];
 
 // --- Helper: Format date as YYYY-MM-DD ---
 function formatDate(date) {
@@ -156,21 +159,35 @@ function renderDateSelector(dates) {
 // --- Render Meal Tabs ---
 function renderMealTabs() {
     const mealTabs = document.getElementById('meal-tabs');
-    if (!mealTabs) {
-        return;
-    }
-    Array.from(mealTabs.children).forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.meal === selectedMeal);
+    if (!mealTabs) return;
+    mealTabs.innerHTML = '';
+    mealTypes.forEach(type => {
+        const tab = document.createElement('button');
+        tab.className = 'meal-tab' + (selectedMeal === type ? ' active' : '');
+        tab.dataset.meal = type;
+        tab.textContent = type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1);
         tab.onclick = () => {
-            selectedMeal = tab.dataset.meal;
-            renderMealTabs();
-            renderFoodCards();
+            if (selectedMeal !== type) {
+                selectedMeal = type;
+                renderMealTabs();
+                renderFoodCards();
+            }
         };
+        mealTabs.appendChild(tab);
     });
 }
+// Ensure meal tab click works on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMealTabs);
+} else {
+    renderMealTabs();
+}
+
 
 // --- Render Food Cards ---
 function renderFoodCards() {
+    // Only render if on history.html
+    if (!window.location.pathname.includes('history.html')) return;
     const historyContainer = document.getElementById('history-container');
     if (!historyContainer) {
         return;
@@ -181,33 +198,46 @@ function renderFoodCards() {
         const data = doc.data();
         const docDate = formatDate(data.timestamp);
         // Try to get meal type, fallback to 'breakfast'
-        const meal = (data.data.mealType || 'breakfast').toLowerCase();
-        return docDate === selectedDate && meal === selectedMeal;
+        const mealType = data.data.mealType || 'breakfast';
+        const matchMeal = selectedMeal === 'all' || selectedMeal === mealType;
+        return (!selectedDate || docDate === selectedDate) && matchMeal;
     });
     if (filtered.length === 0) {
-        historyContainer.innerHTML = `<div class="text-center text-muted p-5">No records for this meal and date.</div>`;
+        if (window.location.pathname.includes('history.html')) {
+            historyContainer.innerHTML = `<div class="text-center text-muted p-5">No records for this meal and date.</div>`;
+        } else {
+            historyContainer.innerHTML = '';
+        }
         return;
     }
     filtered.forEach(doc => {
         const data = doc.data();
         const food = data.data;
-        const imageUrl = food.imageUrl || 'https://img.icons8.com/ios-filled/50/meal.png';
+        const imageUrl = food.imageUrl && food.imageUrl.startsWith('data:image') ? food.imageUrl : 'https://img.icons8.com/ios-filled/200/meal.png';
+        // Always pull from all possible sources and fallback to 0
         const foodName = food.foodName || (food.foodItems && food.foodItems[0]?.name) || 'Unknown Food';
-        const kcal = food.calories || (food.nutrition && food.nutrition.calories) || (food.foodItems && food.foodItems[0]?.calories) || '--';
-        const weight = food.weight || (food.foodItems && food.foodItems[0]?.weight) || '--';
-        const protein = (food.nutrition && food.nutrition.protein) || '--';
-        const carbs = (food.nutrition && food.nutrition.carbs) || '--';
-        const fat = (food.nutrition && food.nutrition.fat) || '--';
-        // Card
+        // Defensive: always show 0 if value is missing or NaN, check all sources
+        let kcal = (food.nutrition && food.nutrition.calories) || (food.foodItems && food.foodItems[0]?.calories) || food.calories;
+        let protein = (food.nutrition && food.nutrition.protein) || (food.foodItems && food.foodItems[0]?.protein) || food.protein;
+        let carbs = (food.nutrition && food.nutrition.carbs) || (food.foodItems && food.foodItems[0]?.carbs) || food.carbs;
+        let fat = (food.nutrition && food.nutrition.fat) || (food.foodItems && food.foodItems[0]?.fat) || food.fat;
+        kcal = isNaN(Number(kcal)) || kcal === undefined || kcal === null ? 0 : Number(kcal);
+        protein = isNaN(Number(protein)) || protein === undefined || protein === null ? 0 : Number(protein);
+        carbs = isNaN(Number(carbs)) || carbs === undefined || carbs === null ? 0 : Number(carbs);
+        fat = isNaN(Number(fat)) || fat === undefined || fat === null ? 0 : Number(fat);
+
         const card = document.createElement('div');
         card.className = 'food-card';
         card.innerHTML = `
-            <img class="food-img" src="${imageUrl}" alt="Food">
             <div class="food-info">
-                <div class="food-title">${foodName}</div>
-                <div class="food-meta">
-                    <span class="kcal-fire"><i class="fas fa-fire"></i></span>${kcal} kcal
-                    <span style="color:#bbb;font-size:0.97em;">${weight !== '--' ? '· ' + weight + ' G' : ''}</span>
+                <div class="food-image mb-2" style="text-align:center;">
+                    <img src="${imageUrl}" alt="Food Image" style="max-width: 80px; max-height: 80px; border-radius: 8px; object-fit: cover; background: #f8f8f8;" />
+                </div>
+                <h5 class="food-name mb-3">
+                    <i class="fas fa-utensils me-2 text-primary"></i>${foodName}
+                </h5>
+                <div class="analysis-time" style="color:#888;font-size:0.93em;margin-bottom:2px;">
+                    <i class="far fa-clock me-1"></i>Analyzed at: ${new Date(data.timestamp).toLocaleString()}
                 </div>
                 <div class="nutrients mt-2">
                     <div class="nutrient protein"><span style="display:inline-block;width:8px;height:8px;background:#2ecc40;border-radius:2px;margin-right:4px;"></span>${protein} <span class="nutrient-label">Protein</span></div>
@@ -215,23 +245,120 @@ function renderFoodCards() {
                     <div class="nutrient fat"><span style="display:inline-block;width:8px;height:8px;background:#a569bd;border-radius:2px;margin-right:4px;"></span>${fat} <span class="nutrient-label">Fat</span></div>
                 </div>
             </div>
-            <div class="card-actions" style="display:flex;gap:4px;position:absolute;top:10px;right:10px;z-index:2;">
+            <div class="card-actions">
                 <button class="card-action-btn menu-btn" aria-label="More actions" title="More actions"><i class="fas fa-ellipsis-h"></i></button>
-                <button class="card-action-btn delete delete-btn" aria-label="Delete" title="Delete" style="margin-left:6px;"><i class="fas fa-trash"></i></button>
+                <button class="card-action-btn delete delete-btn" aria-label="Delete" title="Delete"><i class="fas fa-trash"></i></button>
             </div>
         `;
-        // Menu button (placeholder for now)
+
+        // Menu button: show calories chart and add-to-calculator
         card.querySelector('.menu-btn').onclick = (e) => {
+            // Re-evaluate nutrition for modal to ensure correct values
+            let modalKcal = (food.nutrition && food.nutrition.calories) || (food.foodItems && food.foodItems[0]?.calories) || food.calories;
+            let modalProtein = (food.nutrition && food.nutrition.protein) || (food.foodItems && food.foodItems[0]?.protein) || food.protein;
+            let modalCarbs = (food.nutrition && food.nutrition.carbs) || (food.foodItems && food.foodItems[0]?.carbs) || food.carbs;
+            let modalFat = (food.nutrition && food.nutrition.fat) || (food.foodItems && food.foodItems[0]?.fat) || food.fat;
+            modalKcal = isNaN(Number(modalKcal)) || modalKcal === undefined || modalKcal === null ? 0 : Number(modalKcal);
+            modalProtein = isNaN(Number(modalProtein)) || modalProtein === undefined || modalProtein === null ? 0 : Number(modalProtein);
+            modalCarbs = isNaN(Number(modalCarbs)) || modalCarbs === undefined || modalCarbs === null ? 0 : Number(modalCarbs);
+            modalFat = isNaN(Number(modalFat)) || modalFat === undefined || modalFat === null ? 0 : Number(modalFat);
             e.stopPropagation();
-            alert('More actions coming soon!');
+
+            // Create modal if not already present
+            let modal = document.getElementById('food-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'food-modal';
+                modal.innerHTML = `
+  <div class="food-modal-overlay">
+    <div class="food-modal food-modal-content food-modal-vertical">
+      <button id="close-food-modal" class="food-modal-close" aria-label="Close">&times;</button>
+      <div class="food-modal-details">
+        <div class="food-modal-title">Food Details</div>
+        <div class="food-modal-foodname">${foodName}</div>
+        <div class="food-modal-kcal">${modalKcal} kcal</div>
+        <div class="food-modal-chart-wrapper">
+          <canvas id="modal-calories-chart" width="180" height="180" style="margin:0 auto;display:block;"></canvas>
+          <div class="food-modal-legend"></div>
+        </div>
+        <img src="${imageUrl}" alt="Food Image" class="food-modal-img" style="margin: 1.3rem auto 0.7rem auto;">
+        <div class="food-modal-btn-row">
+          <button id="add-to-calculator-btn" class="btn btn-primary food-modal-btn">Add to Calories Calculator</button>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+// NOTE: Modal now uses a single vertical flex column for all content.
+// NOTE: Modal is now vertically stacked for a more modern, cohesive look.
+// NOTE: All modal styles are now in history-cards.css for maintainability.
+
+                document.body.appendChild(modal);
+            }
+            // Show modal
+            modal.style.display = 'block';
+
+            // Render chart
+            const ctx = modal.querySelector('#modal-calories-chart').getContext('2d');
+            if (window.modalCaloriesChart) window.modalCaloriesChart.destroy();
+            window.modalCaloriesChart = new window.Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Protein', 'Carbs', 'Fat'],
+                    datasets: [{
+                        data: [modalProtein, modalCarbs, modalFat],
+                        backgroundColor: ['#2ecc40','#f1c40f','#a569bd'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: true }
+                    },
+                    cutout: '65%',
+                    responsive: false,
+                    maintainAspectRatio: false
+                }
+            });
+            // Custom legend
+            const legendDiv = modal.querySelector('.food-modal-legend');
+            legendDiv.innerHTML = `
+              <span style="display:inline-block;width:16px;height:8px;background:#2ecc40;border-radius:2px;margin-right:5px;"></span>Protein
+              <span style="display:inline-block;width:16px;height:8px;background:#f1c40f;border-radius:2px;margin:0 7px 0 14px;"></span>Carbs
+              <span style="display:inline-block;width:16px;height:8px;background:#a569bd;border-radius:2px;margin:0 7px 0 14px;"></span>Fat
+            `;
+
+            // Close modal handler
+            modal.querySelector('#close-food-modal').onclick = () => {
+                modal.style.display = 'none';
+            };
+            modal.querySelector('.food-modal-overlay').onclick = (ev) => {
+                if (ev.target === modal.querySelector('.food-modal-overlay')) modal.style.display = 'none';
+            };
+
+            // Add to calculator button
+            modal.querySelector('#add-to-calculator-btn').onclick = () => {
+                let items = JSON.parse(localStorage.getItem('calculatorItems') || '[]');
+                items.push({
+                    name: foodName,
+                    calories: modalKcal,
+                    protein: modalProtein,
+                    fat: modalFat,
+                    carbs: modalCarbs,
+                    date: (data.timestamp ? new Date(data.timestamp).toISOString().slice(0,10) : new Date().toISOString().slice(0,10))
+                });
+                localStorage.setItem('calculatorItems', JSON.stringify(items));
+                showToast('Added to Calories Calculator!', 'success');
+                modal.style.display = 'none';
+            };
         };
+
         // Delete button logic (always use the doc id from Firestore)
         card.querySelector('.delete-btn').onclick = (e) => {
             e.stopPropagation();
             showDeleteModal(doc.id);
         };
-
-
 
         historyContainer.appendChild(card);
     });
@@ -243,7 +370,12 @@ async function loadAnalysisHistory() {
     if (!historyContainer) {
         return;
     }
-    historyContainer.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading your analysis history...</p></div>`;
+    // Only show loading spinner if on history.html
+    if (window.location.pathname.includes('history.html')) {
+        historyContainer.innerHTML = `<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading your analysis history...</p></div>`;
+    } else {
+        historyContainer.innerHTML = '';
+    }
     try {
         const isConnected = await checkFirebaseConnectivity();
         if (!isConnected) { showConnectionError(historyContainer); return; }
@@ -255,7 +387,11 @@ async function loadAnalysisHistory() {
         const snapshot = await getDocs(q);
         allHistoryDocs = snapshot.docs;
         if (allHistoryDocs.length === 0) {
-            historyContainer.innerHTML = `<div class="text-center p-5"><div class="empty-state bg-light rounded p-5"><i class="fas fa-history fa-4x text-muted mb-4"></i><h3 class="mb-3">No Analysis History</h3><p class="text-muted mb-4">You haven't analyzed any food items yet. Start by analyzing your first food!</p><div class="d-flex justify-content-center gap-3"><a href="main.html" class="btn btn-primary"><i class="fas fa-camera me-2"></i>Analyze with Image</a></div></div></div>`;
+            if (window.location.pathname.includes('history.html')) {
+                historyContainer.innerHTML = `<div class="text-center p-5"><div class="empty-state bg-light rounded p-5"><i class="fas fa-history fa-4x text-muted mb-4"></i><h3 class="mb-3">No Analysis History</h3><p class="text-muted mb-4">You haven't analyzed any food items yet. Start by analyzing your first food!</p><div class="d-flex justify-content-center gap-3"><a href="main.html" class="btn btn-primary"><i class="fas fa-camera me-2"></i>Analyze with Image</a></div></div></div>`;
+            } else {
+                historyContainer.innerHTML = '';
+            }
             return;
         }
         // Get all unique dates
@@ -313,10 +449,13 @@ function hideDeleteModal() {
     pendingDeleteDocId = null;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadAnalysisHistory();
-    ensureDeleteModal();
-});
+// Only initialize history logic if on history.html
+if (window.location.pathname.includes('history.html')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAnalysisHistory();
+        ensureDeleteModal();
+    });
+}
 
 // Helper function to format analysis data
 function formatAnalysisData(data, imageUrl = '') {

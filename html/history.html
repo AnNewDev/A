@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/modal.css">
+    <link rel="stylesheet" href="../css/history-cards.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Custom styles for new history UI */
         .date-selector {
@@ -48,16 +51,7 @@
             background: var(--primary-color);
             color: #fff;
         }
-        .food-card {
-            background: #fff;
-            border-radius: 18px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-            padding: 1.25rem 1rem;
-            margin-bottom: 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+
         .food-img {
             width: 48px;
             height: 48px;
@@ -100,9 +94,9 @@
 <body>
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="main.html">
-                <i class="fas fa-apple-alt"></i>
-                CaloriesWise
+            <a class="navbar-brand d-flex align-items-center gap-2" href="main.html">
+                <i class="fas fa-apple-alt fa-lg text-success"></i>
+                <span class="fw-bold" style="letter-spacing:1px;">CaloriesWise</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -144,6 +138,22 @@
                 </div>
                 <!-- Food Cards Container -->
                 <div id="history-container">
+                    <!-- Updated food card example with improved button structure -->
+                    <div class="food-card">
+                        <img class="food-img" src="https://img.icons8.com/ios-filled/50/meal.png" alt="Food">
+                        <div class="food-info">
+                            <div class="food-title">Sample Food</div>
+                            <div class="food-meta">100 kcal</div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="card-action-btn menu-btn" aria-label="More actions" title="More actions">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <button class="card-action-btn delete-btn" aria-label="Delete" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
                     <!-- JS will populate food cards here -->
                 </div>
             </div>

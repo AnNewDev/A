@@ -62,27 +62,52 @@ Food to analyze: "${foodDescription}"`
                 throw new Error('No JSON found in response');
             }
             result = JSON.parse(jsonMatch[0]);
+            // DEBUG: Log the parsed result object
+            console.log('Parsed Gemini result:', result);
+            // EXTRA DEBUG: Log the parsed nutrition values
+            if (result.nutrition) {
+                console.log('[DEBUG][Gemini Nutrition] Calories:', result.calories, 'Protein:', result.nutrition.protein, 'Carbs:', result.nutrition.carbs, 'Fat:', result.nutrition.fat);
+            } else {
+                console.log('[DEBUG][Gemini Nutrition] No nutrition field found in result:', result);
+            }
         } catch (e) {
             console.error('Error parsing API response:', data.candidates[0].content.parts[0].text);
             throw new Error('Failed to parse API response');
         }
 
+        // Helper: extract the average from a range string or return 0
+        function extractAverageFromRange(val) {
+            if (typeof val === 'number') return val;
+            if (typeof val === 'string') {
+                const matches = val.match(/\d+(\.\d+)?/g);
+                if (matches) {
+                    const nums = matches.map(Number);
+                    if (nums.length === 1) return nums[0];
+                    if (nums.length > 1) {
+                        // Return average of range
+                        return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
+                    }
+                }
+            }
+            return 0;
+        }
         return {
             foodName: result.name || 'Unknown food',
-            calories: result.calories || 'Not available',
+            calories: extractAverageFromRange(result.calories),
             ingredients: Array.isArray(result.ingredients) ? result.ingredients : ['Not available'],
-            nutrition: result.nutrition || {
-                protein: 'N/A',
-                carbs: 'N/A',
-                fat: 'N/A',
-                fiber: 'N/A',
-                sugar: 'N/A'
+            nutrition: {
+                protein: extractAverageFromRange(result.nutrition?.protein),
+                carbs: extractAverageFromRange(result.nutrition?.carbs),
+                fat: extractAverageFromRange(result.nutrition?.fat),
+                fiber: extractAverageFromRange(result.nutrition?.fiber),
+                sugar: extractAverageFromRange(result.nutrition?.sugar)
             },
             category: result.category || 'Unknown',
             cuisine: result.cuisine || 'Unknown',
             healthTips: Array.isArray(result.healthTips) ? result.healthTips : [],
             alternatives: Array.isArray(result.alternatives) ? result.alternatives : []
         };
+
     } catch (error) {
         console.error('Error analyzing food:', error);
         throw error;
@@ -271,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 caloriesElement.innerHTML = `<div class="alert alert-success">
                     <h5 class="mb-2">Nutritional Information</h5>
-                    <p class="mb-0"><strong>Calories:</strong> ${result.calories}</p>
+                    <p class="mb-0"><strong>Calories:</strong> ${result.calories && result.calories !== 0 ? result.calories : 'Not available'}</p>
                     <p class="mb-0"><strong>Protein:</strong> ${result.nutrition.protein}</p>
                     <p class="mb-0"><strong>Carbs:</strong> ${result.nutrition.carbs}</p>
                     <p class="mb-0"><strong>Fat:</strong> ${result.nutrition.fat}</p>
@@ -284,6 +309,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Save analysis results to history
                 try {
+                    // Helper to get meal type by hour
+                    function getMealTypeByHour(date) {
+                        const hour = date.getHours();
+                        if (hour >= 5 && hour < 11) return 'breakfast';
+                        if (hour >= 11 && hour < 16) return 'lunch';
+                        if (hour >= 16 && hour < 22) return 'dinner';
+                        return 'breakfast'; // fallback for late night/early morning
+                    }
+                    // Use current local time for mealType
+                    const now = new Date();
+                    const mealType = getMealTypeByHour(now);
                     const analysisData = {
                         nutrition: {
                             calories: result.calories,
@@ -300,7 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         cuisine: result.cuisine,
                         ingredients: result.ingredients,
                         healthTips: result.healthTips,
-                        alternatives: result.alternatives
+                        alternatives: result.alternatives,
+                        mealType: mealType
                     };
                     await saveAnalysisResults(analysisData);
                     console.log('Text analysis saved to history');

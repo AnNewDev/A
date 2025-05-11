@@ -23,15 +23,28 @@ export function loadUserProfile({ displayNameInput, emailInput, uidInput, avatar
     });
 }
 
+// Uploads a profile picture to Imgur and returns the public image URL
 export async function uploadProfilePicture(file, user, callback) {
     if (!file || !user) return null;
     try {
-        const storage = getStorage();
-        const storageRef = ref(storage, `profile_pictures/${user.uid}/${file.name}`);
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
-        if (callback) callback('Profile picture uploaded!', 'success');
-        return url;
+        const clientId = 'dacff5a5b670c5c'; // User's Imgur Client ID
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await fetch('https://api.imgur.com/3/image', {
+            method: 'POST',
+            headers: { Authorization: 'Client-ID ' + clientId },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success && data.data && data.data.link) {
+            if (callback) callback('Profile picture uploaded!', 'success');
+            return data.data.link;
+        } else {
+            // Debug: log Imgur API response
+            console.error('Imgur upload failed:', data);
+            if (callback) callback('Imgur upload failed: ' + (data.data && data.data.error ? data.data.error : JSON.stringify(data)), 'danger');
+            throw new Error(data.data && data.data.error ? data.data.error : 'Imgur upload failed');
+        }
     } catch (error) {
         if (callback) callback('Error uploading profile picture: ' + error.message, 'danger');
         return null;

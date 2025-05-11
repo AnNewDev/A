@@ -205,6 +205,12 @@ async function analyzeImageWithGemini(imageBase64, languageCode = 'en') {
 
         const data = await response.json();
         console.log('Analysis response:', data);
+        // DEBUG: Log the raw Gemini text response
+        if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            console.log('Gemini raw text:', data.candidates[0].content.parts[0].text);
+        }
+        // EXTRA DEBUG: Log the full Gemini API response for nutrition debugging
+        console.log('[DEBUG][Gemini API] Full response object:', JSON.stringify(data, null, 2));
         
         if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
             console.error('Unexpected analysis response:', data);
@@ -220,6 +226,14 @@ async function analyzeImageWithGemini(imageBase64, languageCode = 'en') {
                 throw new Error('Invalid analysis response format');
             }
             result = JSON.parse(jsonMatch[0]);
+            // DEBUG: Log the parsed result object
+            console.log('Parsed Gemini result:', result);
+            // EXTRA DEBUG: Log the parsed nutrition values
+            if (result.nutrition) {
+                console.log('[DEBUG][Gemini Nutrition] Calories:', result.calories, 'Protein:', result.nutrition.protein, 'Carbs:', result.nutrition.carbs, 'Fat:', result.nutrition.fat);
+            } else {
+                console.log('[DEBUG][Gemini Nutrition] No nutrition field found in result:', result);
+            }
         } catch (e) {
             console.error('Error parsing analysis response:', data.candidates[0].content.parts[0].text);
             throw new Error('Failed to parse analysis response');
@@ -229,14 +243,35 @@ async function analyzeImageWithGemini(imageBase64, languageCode = 'en') {
             throw new Error('Could not identify the food in the image. Please try with a clearer image.');
         }
 
+        // Helper: extract the average from a range string or return 0
+        function extractAverageFromRange(val) {
+            if (typeof val === 'number') return val;
+            if (typeof val === 'string') {
+                const matches = val.match(/\d+(\.\d+)?/g);
+                if (matches) {
+                    const nums = matches.map(Number);
+                    if (nums.length === 1) return nums[0];
+                    if (nums.length > 1) {
+                        // Return average of range
+                        return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
+                    }
+                }
+            }
+            return 0;
+        }
+        // Defensive: always parse as numbers and fallback to 0
+        const safeCalories = extractAverageFromRange(result.calories);
+        const safeProtein = extractAverageFromRange(result.nutrition?.protein);
+        const safeCarbs = extractAverageFromRange(result.nutrition?.carbs);
+        const safeFat = extractAverageFromRange(result.nutrition?.fat);
         return {
             foodName: result.name,
-            calories: result.calories,
+            calories: safeCalories,
             ingredients: Array.isArray(result.ingredients) ? result.ingredients : ['Not available'],
-            nutrition: result.nutrition || {
-                protein: 'N/A',
-                carbs: 'N/A',
-                fat: 'N/A'
+            nutrition: {
+                protein: safeProtein,
+                carbs: safeCarbs,
+                fat: safeFat
             },
             category: result.category || 'Unknown',
             cuisine: result.cuisine || 'Unknown'
@@ -334,22 +369,44 @@ async function handleImageAnalysis(imageFile, language = 'en') {
                     alert('You must be logged in to save to history.');
                 }
             } else {
+                // Helper to get meal type by hour
+                function getMealTypeByHour(date) {
+                    const hour = date.getHours();
+                    if (hour >= 5 && hour < 11) return 'breakfast';
+                    if (hour >= 11 && hour < 16) return 'lunch';
+                    if (hour >= 16 && hour < 22) return 'dinner';
+                    return 'breakfast'; // fallback for late night/early morning
+                }
+                const now = new Date();
+                const mealType = getMealTypeByHour(now);
+                // Defensive: parse all nutrition as numbers, fallback to 0
+                const safeCalories = isNaN(Number(result.calories)) ? 0 : Number(result.calories);
+                const safeProtein = isNaN(Number(result.nutrition?.protein)) ? 0 : Number(result.nutrition?.protein);
+                const safeCarbs = isNaN(Number(result.nutrition?.carbs)) ? 0 : Number(result.nutrition?.carbs);
+                const safeFat = isNaN(Number(result.nutrition?.fat)) ? 0 : Number(result.nutrition?.fat);
                 const analysisData = {
                     nutrition: {
-                        calories: result.calories,
-                        protein: result.nutrition.protein,
-                        carbs: result.nutrition.carbs,
-                        fat: result.nutrition.fat
+                        calories: safeCalories,
+                        protein: safeProtein,
+                        carbs: safeCarbs,
+                        fat: safeFat
                     },
+                    calories: safeCalories,
                     foodItems: [{
                         name: result.foodName,
-                        confidence: 100
+                        confidence: 100,
+                        protein: safeProtein,
+                        carbs: safeCarbs,
+                        fat: safeFat,
+                        calories: safeCalories
                     }],
                     imageUrl: base64Image,
                     category: result.category,
                     cuisine: result.cuisine,
-                    ingredients: result.ingredients
+                    ingredients: result.ingredients,
+                    mealType: mealType,
                 };
+
                 await saveAnalysisResults(analysisData);
                 if (window.showToast) {
                     window.showToast('Analysis saved to history!', 'success');
