@@ -1,14 +1,21 @@
-# Ignore everything
-*
-# Except the asset folder
-!asset/
-!asset/**
-# But still ignore specific sensitive files
-/Secret/.env
-# Ignore the .env file in the Secret directory
+# Ignore sensitive files and directories
 /Secret/
-# Ignore the entire Secret directory
+/Secret/.env
 js/config.js
-# Ignore config file containing API keys
 js/firebase-config.js
-# Ignore Firebase configuration file
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# Ignore build and dependency directories
+node_modules/
+dist/
+build/
+
+# Ignore environment files
+.env
+.env.local
+.env.*.local

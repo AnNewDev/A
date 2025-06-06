@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis History - CaloriesWise</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="main.html">
+                <i class="fas fa-apple-alt fa-lg text-success"></i>
+                <span class="fw-bold" style="letter-spacing:1px;">CaloriesWise</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="history.html">History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="main.html">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="calorie_calculator.html">Calorie Calculator</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-6">
+                <div class="card p-4 shadow">
+                    <h2 class="mb-4 text-center"><i class="fas fa-user-cog me-2"></i>Profile Settings</h2>
+                    <div class="mb-3">
+                        <label for="uid" class="form-label">User ID (UID)</label>
+                        <input type="text" id="uid" class="form-control" disabled>
+                    </div>
+                    <form id="profile-settings-form">
+                        <div class="mb-3">
+                            <label for="displayName" class="form-label">Display Name</label>
+                            <input type="text" id="displayName" class="form-control" placeholder="Enter your display name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" id="email" class="form-control" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="photoFile" class="form-label">Profile Picture</label>
+                            <input type="file" id="photoFile" class="form-control" accept="image/*">
+                            <div class="mt-2 text-center">
+                                <img id="photoPreview" src="" alt="Profile Picture Preview" style="max-width: 120px; max-height: 120px; border-radius: 50%; object-fit: cover; display: none;" referrerpolicy="no-referrer">
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save me-2"></i>Save Profile</button>
+                        </div>
+                    </form>
+                    <form id="email-change-form" class="mb-3">
+                        <div class="mb-3">
+                            <label for="newEmail" class="form-label">Change Email</label>
+                            <input type="email" id="newEmail" class="form-control" placeholder="Enter new email">
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary w-100">Change Email</button>
+                    </form>
+                    <form id="password-change-form">
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">Change Password</label>
+                            <input type="password" id="newPassword" class="form-control" placeholder="Enter new password">
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary w-100">Change Password</button>
+                    </form>
+                    <button type="button" id="signOutBtn" class="btn btn-outline-danger w-100 mt-3"><i class="fas fa-sign-out-alt me-2"></i>Sign Out</button>
+                    <div id="profile-message" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        import { loadUserProfile, saveProfile, changeEmail, changePassword, handleSignOut, uploadProfilePicture } from '../js/userSettings.js';
+
+        // DOM elements
+        const displayNameInput = document.getElementById('displayName');
+        const emailInput = document.getElementById('email');
+        const photoFileInput = document.getElementById('photoFile');
+        const photoPreview = document.getElementById('photoPreview');
+        const uidInput = document.getElementById('uid');
+        const profileForm = document.getElementById('profile-settings-form');
+        const emailChangeForm = document.getElementById('email-change-form');
+        const passwordChangeForm = document.getElementById('password-change-form');
+        const newEmailInput = document.getElementById('newEmail');
+        const newPasswordInput = document.getElementById('newPassword');
+        const profileMessage = document.getElementById('profile-message');
+        const signOutBtn = document.getElementById('signOutBtn');
+
+        let uploadedPhotoURL = null;
+
+        function showMessage(msg, type) {
+            profileMessage.textContent = msg;
+            profileMessage.className = 'alert alert-' + type;
+        }
+
+        // Load user profile info
+        loadUserProfile({ displayNameInput, emailInput, uidInput, photoPreview });
+
+        // Preview profile picture
+        photoFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    photoPreview.src = evt.target.result;
+                    photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            let photoURL = null;
+            const { auth } = await import('../js/firebase-config.js');
+            const user = auth.currentUser;
+            // If a new file is selected, upload it
+            if (photoFileInput.files[0]) {
+                photoURL = await uploadProfilePicture(photoFileInput.files[0], user, showMessage);
+            } else if (photoPreview.src && !photoPreview.src.includes('data:')) {
+                photoURL = photoPreview.src;
+            }
+            await saveProfile(displayNameInput.value, photoURL, showMessage);
+
+            // Update navbar avatar if present
+            const navbarAvatar = document.getElementById('navbarAvatar');
+            if (navbarAvatar) {
+                if (photoURL) {
+                    navbarAvatar.src = photoURL;
+                } else {
+                    navbarAvatar.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayNameInput.value || 'User') + '&background=eee&color=555&rounded=true&size=120';
+                }
+            }
+        });
+
+        emailChangeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await changeEmail(newEmailInput.value, showMessage, emailInput);
+            newEmailInput.value = '';
+        });
+
+        passwordChangeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await changePassword(newPasswordInput.value, showMessage);
+            newPasswordInput.value = '';
+        });
+
+        signOutBtn.addEventListener('click', async () => {
+            await handleSignOut(showMessage);
+        });
+    </script>
+</body>
+</html>
