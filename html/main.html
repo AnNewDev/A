@@ -169,7 +169,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
         <div class="container-fluid px-4">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="./main.html">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="main.html">
                 <i class="fas fa-apple-alt fa-lg text-success"></i>
                 <span class="fw-bold" style="letter-spacing:1px;">CaloriesWise</span>
             </a>
@@ -179,9 +179,9 @@
             <div class="collapse navbar-collapse" id="navbarContent">
                 <div class="navbar-nav mx-auto gap-2">
                     <a class="nav-link" href="../index.html">Home</a>
-                    <a class="nav-link active" href="./main.html">Dashboard</a>
-                    <a class="nav-link" href="./calorie_calculator.html">Calorie Calculator</a>
-                    <a class="nav-link" href="./history.html">History</a>
+                    <a class="nav-link active" href="main.html">Dashboard</a>
+                    <a class="nav-link" href="calorie_calculator.html">Calorie Calculator</a>
+                    <a class="nav-link" href="history.html">History</a>
                 </div>
 
                 <div class="user-profile ms-lg-0">
@@ -274,9 +274,6 @@
                                     <input type="text" id="foodInput" class="form-control ps-5 rounded-pill" placeholder="Food, meal or brand" style="height:48px; font-size:1.05rem;">
                                     <div id="foodSuggestions" class="food-suggestions mt-1"></div>
                                 </div>
-                                <button id="cameraBtnNew" type="button" class="btn btn-dark rounded-circle p-0 d-flex align-items-center justify-content-center" style="width:48px; height:48px; display:flex; align-items:center; justify-content:center;">
-                                    <i class="fas fa-qrcode" style="font-size:1.5rem; margin:0; padding:0; display:flex; align-items:center; justify-content:center;"></i>
-                                </button>
                             </div>
                             <button id="analyzeBtn" class="btn btn-primary w-100 mt-3" type="button" aria-label="Analyze Food">
                                 <i class="fas fa-search me-2" aria-hidden="true"></i>Analyze Food
@@ -284,19 +281,18 @@
                         </div>
 
                         <div class="text-center mb-4">
-                            <p class="text-muted">Or use image analysis below:</p>
+                            <p class="text-muted">Or upload an image below:</p>
                         </div>
 
-                        <!-- Camera Interface -->
+                        <!-- Image Upload Interface -->
                         <div class="camera-container">
                             <div id="cameraOverlay" class="camera-overlay">
                                 <div class="text-center">
-                                    <i class="fas fa-camera fa-2x mb-2"></i>
-                                    <p class="mb-0">Click 'Open Camera' to start or upload an image</p>
+                                    <i class="fas fa-upload fa-2x mb-2"></i>
+                                    <p class="mb-0">Upload an image to analyze</p>
                                 </div>
                             </div>
                             <div class="preview-wrapper">
-                                <video id="camera-preview" autoplay playsinline muted></video>
                                 <img id="previewImage" alt="Preview" />
                             </div>
                         </div>
@@ -305,7 +301,6 @@
                         <div class="d-flex flex-wrap gap-2 mb-4 justify-content-center">
                             <button id="uploadBtn" class="btn btn-outline-primary"><i class="fas fa-upload me-1"></i>Upload</button>
                             <button id="clearBtn" class="btn btn-outline-secondary"><i class="fas fa-trash me-1"></i>Clear</button>
-                            <button id="captureBtn" class="btn btn-primary"><i class="fas fa-camera me-1"></i>Capture</button>
                         </div>
 
                         <!-- Hidden File Input -->
@@ -361,17 +356,6 @@
             logoutBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 await handleSignOut();
-            });
-        }
-        // Camera/scan button triggers camera/upload
-        const cameraBtnNew = document.getElementById('cameraBtnNew');
-        if (cameraBtnNew) {
-            cameraBtnNew.addEventListener('click', function() {
-                // Prefer camera if available, otherwise fallback to upload
-                const cameraBtn = document.getElementById('cameraBtn');
-                const uploadBtn = document.getElementById('uploadBtn');
-                if (cameraBtn) cameraBtn.click();
-                else if (uploadBtn) uploadBtn.click();
             });
         }
     </script>

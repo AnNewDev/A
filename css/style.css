@@ -590,15 +590,6 @@ p {
     }
 }
 
-.camera-interface {
-    position: relative;
-    width: 100%;
-    background: transparent;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 0;
-}
-
 .camera-container {
     position: relative;
     width: 100%;
@@ -622,7 +613,6 @@ p {
     background: transparent;
 }
 
-#camera-preview,
 #previewImage {
     position: absolute;
     top: 0;
@@ -669,7 +659,7 @@ p {
 
 .action-buttons {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: clamp(0.5rem, 2vw, 1rem);
     padding: 0 clamp(0.5rem, 2vw, 1rem);
     width: 100%;
@@ -693,15 +683,6 @@ p {
 
 .action-buttons .btn i {
     font-size: clamp(1rem, 3vw, 1.2rem);
-}
-
-#captureBtn {
-    display: none;
-    width: min(300px, 90%);
-    height: clamp(40px, 6vw, 48px);
-    margin: clamp(0.75rem, 2vw, 1.25rem) auto;
-    font-size: clamp(0.875rem, 2.5vw, 1rem);
-    border-radius: 24px;
 }
 
 #resultContainer {
@@ -743,46 +724,10 @@ p {
     margin: 1rem 0;
 }
 
-/* Camera Controls and Buttons */
-.camera-controls {
-    position: relative;
-    width: 100%;
-    padding: 0 1rem;
-    display: flex;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-}
-
-.capture-btn {
-    width: 90% !important;
-    max-width: 300px;
-    height: 56px;
-    border-radius: 28px !important;
-    background: #007AFF !important;
-    color: white !important;
-    font-weight: 600 !important;
-    font-size: 1.1rem !important;
-    display: none;
-    border: none !important;
-    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3) !important;
-    transition: all 0.3s ease !important;
-}
-
-.capture-btn:hover {
-    background: #0066FF !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 122, 255, 0.4) !important;
-}
-
-.capture-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3) !important;
-}
-
 /* Action Buttons */
 .action-buttons {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
     padding: 0 1rem;
     width: 100%;
@@ -817,16 +762,6 @@ p {
     transform: translateY(-2px);
 }
 
-#cameraBtn {
-    background: #34C759;
-    color: white;
-}
-
-#cameraBtn:hover {
-    background: #30B753;
-    transform: translateY(-2px);
-}
-
 #clearBtn {
     background: #FF3B30;
     color: white;
@@ -846,13 +781,8 @@ p {
         margin-bottom: 0.75rem;
     }
 
-    .camera-controls {
-        padding: 0 0.75rem;
-        margin-bottom: 1rem;
-    }
-
     .action-buttons {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
         padding: 0 0.75rem;
     }
@@ -861,22 +791,11 @@ p {
         height: 48px;
         font-size: 1rem;
     }
-
-    .capture-btn {
-        width: 100% !important;
-        height: 48px;
-        font-size: 1rem !important;
-    }
 }
 
 @media (max-width: 480px) {
     .camera-container {
         margin-bottom: 0.5rem;
-    }
-
-    .camera-controls {
-        padding: 0 0.5rem;
-        margin-bottom: 0.75rem;
     }
 
     .action-buttons {
@@ -899,7 +818,7 @@ p {
 
 @media (min-width: 481px) and (max-width: 768px) {
     .action-buttons {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
     }
 

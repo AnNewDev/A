@@ -45,7 +45,7 @@ async function checkFirebaseConnectivity() {
 }
 
 // Function to show toast notifications
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', buttonLabel = null, buttonCallback = null) {
     // Create toast container if it doesn't exist
     let toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
@@ -59,36 +59,33 @@ function showToast(message, type = 'info') {
     }
 
     // Create toast element
-    const toastEl = document.createElement('div');
-    const toastId = 'toast-' + Date.now();
-    toastEl.id = toastId;
-    toastEl.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'} border-0`;
-    toastEl.setAttribute('role', 'alert');
-    toastEl.setAttribute('aria-live', 'assertive');
-    toastEl.setAttribute('aria-atomic', 'true');
-
-    toastEl.innerHTML = `
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
+    toast.role = 'alert';
+    toast.ariaLive = 'assertive';
+    toast.ariaAtomic = 'true';
+    toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">
                 ${message}
+                ${buttonLabel ? `<button class="btn btn-light btn-sm ms-3" id="toast-action-btn">${buttonLabel}</button>` : ''}
             </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
+    toastContainer.appendChild(toast);
 
-    toastContainer.appendChild(toastEl);
+    // Button action
+    if (buttonLabel && buttonCallback) {
+        const btn = toast.querySelector('#toast-action-btn');
+        if (btn) btn.onclick = buttonCallback;
+    }
 
-    // Initialize and show the toast
-    const toast = new bootstrap.Toast(toastEl, {
-        autohide: true,
-        delay: 3000
-    });
-    toast.show();
+    // Remove toast after 4 seconds
+    setTimeout(() => {
+        toast.remove();
+    }, 4000);
 
-    // Remove the toast element after it's hidden
-    toastEl.addEventListener('hidden.bs.toast', () => {
-        toastEl.remove();
-    });
 }
 
 // Function to show connection error
@@ -264,43 +261,56 @@ function renderFoodCards() {
             modalFat = isNaN(Number(modalFat)) || modalFat === undefined || modalFat === null ? 0 : Number(modalFat);
             e.stopPropagation();
 
-            // Create modal if not already present
-            let modal = document.getElementById('food-modal');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'food-modal';
-                modal.innerHTML = `
-  <div class="food-modal-overlay">
-    <div class="food-modal food-modal-content food-modal-vertical">
-      <button id="close-food-modal" class="food-modal-close" aria-label="Close">&times;</button>
-      <div class="food-modal-details">
-        <div class="food-modal-title">Food Details</div>
-        <div class="food-modal-foodname">${foodName}</div>
-        <div class="food-modal-kcal">${modalKcal} kcal</div>
-        <div class="food-modal-chart-wrapper">
-          <canvas id="modal-calories-chart" width="180" height="180" style="margin:0 auto;display:block;"></canvas>
-          <div class="food-modal-legend"></div>
-        </div>
-        <img src="${imageUrl}" alt="Food Image" class="food-modal-img" style="margin: 1.3rem auto 0.7rem auto;">
-        <div class="food-modal-btn-row">
-          <button id="add-to-calculator-btn" class="btn btn-primary food-modal-btn">Add to Calories Calculator</button>
-        </div>
-      </div>
-    </div>
-  </div>
-`;
-// NOTE: Modal now uses a single vertical flex column for all content.
-// NOTE: Modal is now vertically stacked for a more modern, cohesive look.
-// NOTE: All modal styles are now in history-cards.css for maintainability.
-
-                document.body.appendChild(modal);
+            // Remove existing modal if present
+            let existingModal = document.getElementById('food-modal');
+            if (existingModal) {
+                existingModal.remove();
             }
-            // Show modal
+
+            // Create new modal
+            let modal = document.createElement('div');
+            modal.id = 'food-modal';
+            modal.innerHTML = `
+                <div class="food-modal-overlay">
+                    <div class="food-modal food-modal-content food-modal-vertical">
+                        <button id="close-food-modal" class="food-modal-close" aria-label="Close">&times;</button>
+                        <div class="food-modal-details">
+                            <div class="food-modal-title">Food Details</div>
+                            <div class="food-modal-foodname">${foodName}</div>
+                            <div class="food-modal-kcal">
+                                <span id="modal-calories">${modalKcal}</span> kcal
+                                <div class="quantity-selector mt-2">
+                                    <button class="quantity-btn" id="decrease-quantity">-</button>
+                                    <input type="number" id="food-quantity" value="1" min="1" max="100">
+                                    <button class="quantity-btn" id="increase-quantity">+</button>
+                                </div>
+                            </div>
+                            <div class="food-modal-chart-wrapper">
+                                <canvas id="modal-calories-chart" width="180" height="180" style="margin:0 auto;display:block;"></canvas>
+                                <div class="food-modal-legend"></div>
+                            </div>
+                            <img src="${imageUrl}" alt="Food Image" class="food-modal-img" style="margin: 1.3rem auto 0.7rem auto;">
+                            <div class="food-modal-btn-row">
+                                <button id="add-to-calculator-btn" class="btn btn-primary food-modal-btn">Add to Calories Calculator</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
             modal.style.display = 'block';
 
             // Render chart
             const ctx = modal.querySelector('#modal-calories-chart').getContext('2d');
             if (window.modalCaloriesChart) window.modalCaloriesChart.destroy();
+
+            // Calculate total for percentages
+            const total = modalProtein + modalCarbs + modalFat;
+            const proteinPercentage = Math.round((modalProtein / total) * 100);
+            const carbsPercentage = Math.round((modalCarbs / total) * 100);
+            const fatPercentage = Math.round((modalFat / total) * 100);
+
             window.modalCaloriesChart = new window.Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -308,25 +318,50 @@ function renderFoodCards() {
                     datasets: [{
                         data: [modalProtein, modalCarbs, modalFat],
                         backgroundColor: ['#2ecc40','#f1c40f','#a569bd'],
-                        borderWidth: 2
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
                     }]
                 },
                 options: {
                     plugins: {
-                        legend: { display: false },
-                        tooltip: { enabled: true }
+                        legend: { 
+                            display: false 
+                        },
+                        tooltip: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const percentage = context.dataset.data[context.dataIndex] / total * 100;
+                                    return `${label}: ${value}g (${Math.round(percentage)}%)`;
+                                }
+                            }
+                        }
                     },
                     cutout: '65%',
                     responsive: false,
                     maintainAspectRatio: false
                 }
             });
-            // Custom legend
+
+            // Custom legend with percentages and values
             const legendDiv = modal.querySelector('.food-modal-legend');
             legendDiv.innerHTML = `
-              <span style="display:inline-block;width:16px;height:8px;background:#2ecc40;border-radius:2px;margin-right:5px;"></span>Protein
-              <span style="display:inline-block;width:16px;height:8px;background:#f1c40f;border-radius:2px;margin:0 7px 0 14px;"></span>Carbs
-              <span style="display:inline-block;width:16px;height:8px;background:#a569bd;border-radius:2px;margin:0 7px 0 14px;"></span>Fat
+                <div class="nutrient-legend">
+                    <div class="nutrient-item">
+                        <span class="nutrient-dot" style="background:#2ecc40"></span>
+                        <span class="nutrient-label">Protein: ${modalProtein}g (${proteinPercentage}%)</span>
+                    </div>
+                    <div class="nutrient-item">
+                        <span class="nutrient-dot" style="background:#f1c40f"></span>
+                        <span class="nutrient-label">Carbs: ${modalCarbs}g (${carbsPercentage}%)</span>
+                    </div>
+                    <div class="nutrient-item">
+                        <span class="nutrient-dot" style="background:#a569bd"></span>
+                        <span class="nutrient-label">Fat: ${modalFat}g (${fatPercentage}%)</span>
+                    </div>
+                </div>
             `;
 
             // Close modal handler
@@ -337,19 +372,75 @@ function renderFoodCards() {
                 if (ev.target === modal.querySelector('.food-modal-overlay')) modal.style.display = 'none';
             };
 
-            // Add to calculator button
+            // Add quantity selector event listeners
+            const quantityInput = modal.querySelector('#food-quantity');
+            const decreaseBtn = modal.querySelector('#decrease-quantity');
+            const increaseBtn = modal.querySelector('#increase-quantity');
+            const caloriesDisplay = modal.querySelector('#modal-calories');
+
+            function updateCalories() {
+                const quantity = parseInt(quantityInput.value);
+                const baseCalories = modalKcal;
+                const totalCalories = baseCalories * quantity;
+                caloriesDisplay.textContent = totalCalories;
+            }
+
+            decreaseBtn.addEventListener('click', () => {
+                const currentValue = parseInt(quantityInput.value);
+                if (currentValue > 1) {
+                    quantityInput.value = currentValue - 1;
+                    updateCalories();
+                }
+            });
+
+            increaseBtn.addEventListener('click', () => {
+                const currentValue = parseInt(quantityInput.value);
+                if (currentValue < 100) {
+                    quantityInput.value = currentValue + 1;
+                    updateCalories();
+                }
+            });
+
+            quantityInput.addEventListener('change', () => {
+                let value = parseInt(quantityInput.value);
+                if (isNaN(value) || value < 1) value = 1;
+                if (value > 100) value = 100;
+                quantityInput.value = value;
+                updateCalories();
+            });
+
+            // Update the add to calculator button to include quantity
             modal.querySelector('#add-to-calculator-btn').onclick = () => {
+                const quantity = parseInt(quantityInput.value);
+                const totalCalories = modalKcal * quantity;
+                const totalProtein = modalProtein * quantity;
+                const totalCarbs = modalCarbs * quantity;
+                const totalFat = modalFat * quantity;
+
+                console.log('[Add to Calculator] name:', foodName, 'calories:', totalCalories, 'protein:', totalProtein, 'fat:', totalFat, 'carbs:', totalCarbs);
                 let items = JSON.parse(localStorage.getItem('calculatorItems') || '[]');
                 items.push({
                     name: foodName,
-                    calories: modalKcal,
-                    protein: modalProtein,
-                    fat: modalFat,
-                    carbs: modalCarbs,
-                    date: (data.timestamp ? new Date(data.timestamp).toISOString().slice(0,10) : new Date().toISOString().slice(0,10))
+                    calories: totalCalories,
+                    protein: totalProtein,
+                    fat: totalFat,
+                    carbs: totalCarbs,
+                    quantity: quantity,
+                    date: (new Date().toISOString().slice(0,10))
                 });
                 localStorage.setItem('calculatorItems', JSON.stringify(items));
-                showToast('Added to Calories Calculator!', 'success');
+                console.log('[Add to Calculator] Updated calculatorItems:', JSON.stringify(items));
+                showToast('Added to Calories Calculator!', 'success', 'View Calculator', () => {
+                    window.location.href = 'calorie_calculator.html';
+                });
+                // If the calculator page is open in this tab, reload or update it
+                if (window.location.pathname.includes('calorie_calculator.html')) {
+                    if (typeof updateAll === 'function') {
+                        updateAll();
+                    } else {
+                        window.location.reload();
+                    }
+                }
                 modal.style.display = 'none';
             };
         };
