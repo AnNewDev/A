@@ -4,3 +4,5 @@
 # Ignore the entire Secret directory
 js/config.js
 # Ignore config file containing API keys
+js/firebase-config.js
+# Ignore Firebase configuration file
