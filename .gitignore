@@ -1,3 +1,9 @@
+# Ignore everything
+*
+# Except the asset folder
+!asset/
+!asset/**
+# But still ignore specific sensitive files
 /Secret/.env
 # Ignore the .env file in the Secret directory
 /Secret/
