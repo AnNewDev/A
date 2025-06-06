@@ -2,3 +2,5 @@
 # Ignore the .env file in the Secret directory
 /Secret/
 # Ignore the entire Secret directory
+js/config.js
+# Ignore config file containing API keys
