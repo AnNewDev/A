@@ -1,0 +1,51 @@
+/* Basic styles for the meal planner page */
+.meal-planner-container {
+    margin-top: 80px; /* Adjust for fixed navbar */
+}
+
+.week-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.day-card .card-title {
+    font-size: 1.25rem;
+    margin-bottom: 15px;
+}
+
+.meal-items p {
+    margin-bottom: 5px;
+}
+
+.nutrition-summary {
+    margin-top: 30px;
+}
+
+.nutrition-item {
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.nutrition-item .label {
+    display: block;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.nutrition-item .value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #333;
+}
+
+#image-preview img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+} 
